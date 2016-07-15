@@ -7,7 +7,7 @@
 //
 
 #import "XYChatViewCell.h"
-
+#import "NSDateUtilities.h"
 @interface XYChatViewCell ()
 /** 头像 */
 @property (nonatomic,strong) XYButton *iconBt;
@@ -15,8 +15,11 @@
 @property (nonatomic,strong) UILabel *timeLb;;
 /** 消息 */
 @property (nonatomic,strong) XYButton *msgBt;
-/** 消息的高度 */
-@property (nonatomic,assign) CGFloat msgHeight;
+/** 记录重复时间 */
+@property (nonatomic,copy) NSString *latestTimeStr;
+/** 文本尺寸 */
+@property (nonatomic,assign) CGSize size;
+
 @end
 @implementation XYChatViewCell
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
@@ -46,8 +49,9 @@
     self.timeLb = timeLb;
     self.iconBt = headBt;
     self.msgBt = msgBt;
+    [self.iconBt setBackgroundImage:[UIImage imageNamed:@"chatListCellHead"] forState:(UIControlStateNormal)];
     self.msgBt.titleLabel.textAlignment = NSTextAlignmentLeft;
-    self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(15, 20, 25, 20);
+    self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(10, 20, 0, 20);
     self.msgBt.titleLabel.numberOfLines = 0;
     self.msgBt.titleLabel.font = [UIFont systemFontOfSize:15.0f];
 }
@@ -61,20 +65,45 @@
 - (void)setMessage:(EMMessage *)message {
     
     _message = message;
-    self.timeLb.text = [NSString stringWithFormat:@"%zd",message.timestamp];
-    EMTextMessageBody *txtBody = (EMTextMessageBody *)message.body;
+
+    self.timeLb.text = [self conversationTime:message.timestamp];
     
-    [self.msgBt setTitle:txtBody.text forState:(UIControlStateNormal)];
-    [self.msgBt setTitleColor:[UIColor blackColor] forState:(UIControlStateNormal)];
-    [self.iconBt setBackgroundImage:[UIImage imageNamed:@"chatListCellHead"] forState:(UIControlStateNormal)];
+    if ([message.body isKindOfClass:[EMTextMessageBody class]]) {
+        /** 文本类型 */
+        EMTextMessageBody *txtBody = (EMTextMessageBody *)message.body;
+        [self.msgBt setTitle:txtBody.text forState:(UIControlStateNormal)];
+        [self.msgBt setTitleColor:[UIColor blackColor] forState:(UIControlStateNormal)];
+        
+        CGSize size = [txtBody.text boundingRectWithSize:CGSizeMake(kScreenWidth / 2, MAXFLOAT) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15.0f]} context:nil].size;
+        self.size = size;
+        
+        if ([message.from isEqualToString:[EMClient sharedClient].currentUsername]) {
+            /** 自己发送的消息 */
+            CGSize realSize = CGSizeMake(self.size.width + 40, self.size.height + 10);
+            self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(10, 20, 0, 20);
+            self.msgBt.size = realSize;
+        } else {
+            /** 好友发来的消息 */
+            CGSize realSize = CGSizeMake(self.size.width + 40, self.size.height + 25);
+            self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(10, 20, 15, 20);
+            self.msgBt.size = realSize;
+        }
+    } else if ([message.body isKindOfClass:[EMVoiceMessageBody class]]) {
+        /** 语音类型 */
+        EMVoiceMessageBody *voiceBody = (EMVoiceMessageBody *)message.body;
+        [self.msgBt setImage:[UIImage imageNamed:@"chat_receiver_audio_playing_full"] forState:(UIControlStateNormal)];
+        [self.msgBt setTitle:[NSString stringWithFormat:@"%zd",voiceBody.duration] forState:(UIControlStateNormal)];
+        self.msgBt.size = CGSizeMake(kWeChatAllSubviewHeight + 40, kWeChatAllSubviewHeight + 5);
+        self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(0, 20, 5, 20);
+        [self.msgBt setTitleColor:[UIColor blackColor] forState:(UIControlStateNormal)];
+        self.msgBt.titleEdgeInsets = UIEdgeInsetsMake(0, 10, 0, 0);
+        self.msgBt.imageEdgeInsets = UIEdgeInsetsMake(0, 0, 0, 10);
+    }
     
-    CGSize size = [txtBody.text boundingRectWithSize:CGSizeMake(kScreenWidth / 2, MAXFLOAT) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15.0f]} context:nil].size;
-    CGSize realSize = CGSizeMake(size.width + 40, size.height + 40);
-    self.msgHeight = realSize.height;
-    self.msgBt.size = realSize;
-    NSLog(@"txtBody.text---%@",txtBody.text);
+//    NSLog(@"txtBody.text---%@",txtBody.text);
     if ([message.from isEqualToString:[EMClient sharedClient].currentUsername]) {
         /** 自己发送的消息 */
+        
         self.iconBt.frame = CGRectMake(kScreenWidth - kChatCellHeight - 10, 40, kChatCellHeight, kChatCellHeight);
         self.msgBt.left = kScreenWidth - self.msgBt.width - self.iconBt.width - 10 * 2;
         
@@ -90,7 +119,47 @@
     }
     
     self.msgBt.top = self.iconBt.top;
-//    NSLog(@"%@")
+}
+
+/** 时间的转换 */
+- (NSString *)conversationTime:(long long)time
+{
+    // 今天 11:20
+    // 昨天 23:23
+    // 前天以前 11:11
+    // 1. 创建一个日历对象
+    NSCalendar *calendar = [NSCalendar currentCalendar];
+    // 2. 获取当前时间
+    NSDate *currentDate = [NSDate date];
+    // 3. 获取当前时间的年月日
+    NSDateComponents *components = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay fromDate:currentDate];
+    NSInteger currentYear = components.year;
+    NSInteger currentMonth = components.month;
+    NSInteger currentDay = components.day;
+    // 4. 获取发送时间
+    NSDate *sendDate = [NSDate dateWithTimeIntervalSince1970:time/1000];
+    // 5. 获取发送时间的年月日
+    NSDateComponents *sendComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay fromDate:sendDate];
+    NSInteger sendYear = sendComponents.year;
+    NSInteger sendMonth =  sendComponents.month;
+    NSInteger sendDay = sendComponents.day;
+    
+    NSDateFormatter *fmt = [[NSDateFormatter alloc]init];
+    // 6. 当前时间与发送时间的比较
+    if (currentYear == sendYear &&
+        currentMonth == sendMonth &&
+        currentDay == sendDay) {// 今天
+        fmt.dateFormat = @"今天 HH:mm";
+    }else if(currentYear == sendYear &&
+             currentMonth == sendMonth &&
+             currentDay == sendDay + 1){
+        fmt.dateFormat = @"昨天 HH:mm";
+    }else{
+        fmt.dateFormat = @"昨天以前 HH:mm";
+    }
+    
+    NSString *timeStr = [fmt stringFromDate:sendDate];
+    return  timeStr;
 }
 
 /** 图片拉伸 */
@@ -106,8 +175,7 @@
 
 - (CGFloat)cellHeight {
     
-    NSLog(@"%lf %lf",self.msgBt.bottom,_cellHeight);
-    return self.msgBt.bottom + 10;
+    return self.msgBt.bottom + kWeChatPadding;
 }
 
 

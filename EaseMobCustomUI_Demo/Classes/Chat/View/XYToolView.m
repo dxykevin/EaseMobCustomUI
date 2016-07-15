@@ -33,12 +33,14 @@
         // 添加子控件
         // 1. 语音按钮
         XYButton *voiceBtn = [XYButton createButton];
-        [voiceBtn setImage:[UIImage imageNamed:@"chatBar_record"] forState:UIControlStateNormal];
+        [voiceBtn setImage:[UIImage imageNamed:@"ToolViewInputVoice"] forState:UIControlStateNormal];
+        [voiceBtn setImage:[UIImage imageNamed:@"ToolViewInputVoiceHL"] forState:UIControlStateHighlighted];
         [self addSubview:voiceBtn];
         // 2. 文本输入框
         UITextView *inputView = [[UITextView alloc]init];
         inputView.backgroundColor = [UIColor whiteColor];
-        inputView.returnKeyType = UIReturnKeyDone;
+        inputView.font = [UIFont systemFontOfSize:15.0f];
+        inputView.returnKeyType = UIReturnKeySend;
         inputView.delegate = self;
         [self addSubview:inputView];
         
@@ -46,15 +48,19 @@
         XYButton *sendVoiceBtn = [XYButton createButton];
         [sendVoiceBtn setTitle:@"按住录音" forState:UIControlStateNormal];
         [sendVoiceBtn setTitle:@"松开发送" forState:UIControlStateHighlighted];
+        /** 开始录音 */
         [sendVoiceBtn addTarget:self action:@selector(startVoice:) forControlEvents:UIControlEventTouchDown];
+        /** 结束录音 */
         [sendVoiceBtn addTarget:self action:@selector(stopVoice:) forControlEvents:UIControlEventTouchUpInside];
+        /** 取消录音 */
         [sendVoiceBtn addTarget:self action:@selector(cancelVoice:) forControlEvents:UIControlEventTouchUpOutside];
         [self addSubview:sendVoiceBtn];
         sendVoiceBtn.hidden = YES;
         
         // 4. 更多按钮
         XYButton *moreBtn = [XYButton createButton];
-        [moreBtn setImage:[UIImage imageNamed:@"chatBar_more"] forState:UIControlStateNormal];
+        [moreBtn setImage:[UIImage imageNamed:@"ToolViewEmotion"] forState:UIControlStateNormal];
+        [moreBtn setImage:[UIImage imageNamed:@"ToolViewEmotionHL"] forState:UIControlStateHighlighted];
         moreBtn.block = ^(XYButton *btn){
             if (self.moreBlock) {
                 self.moreBlock();
@@ -121,7 +127,7 @@
     // 点击了完成按钮
     if ([textView.text hasSuffix:@"\n"]) {
         if (_sendTextBlock) {
-            self.sendTextBlock(textView,XYToolViewEditTextViewTypeSend);
+            _sendTextBlock(textView,XYToolViewEditTextViewTypeSend);
         }
         [textView resignFirstResponder];
     }
@@ -130,7 +136,7 @@
 - (BOOL)textViewShouldBeginEditing:(UITextView *)textView
 {
     if (_sendTextBlock) {
-        self.sendTextBlock(textView,XYToolViewEditTextViewTypeSend);
+        self.sendTextBlock(textView,XYToolViewEditTextViewTypeBegin);
     }
     return YES;
 }

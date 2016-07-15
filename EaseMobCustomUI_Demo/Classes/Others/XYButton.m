@@ -29,4 +29,10 @@
     
     return [XYButton buttonWithType:(UIButtonTypeCustom)];
 }
+
+- (void)setBackgroundImageWithImageName:(NSString *)imageName highImageName:(NSString *)highImageName {
+    
+    [self setBackgroundImage:[UIImage imageNamed:imageName] forState:(UIControlStateNormal)];
+    [self setBackgroundImage:[UIImage imageNamed:highImageName] forState:(UIControlStateHighlighted)];
+}
 @end

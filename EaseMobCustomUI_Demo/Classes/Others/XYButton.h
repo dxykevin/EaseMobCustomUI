@@ -14,4 +14,7 @@ typedef void(^XYButtonClickedBlock) (XYButton *);
 @property (nonatomic,copy) XYButtonClickedBlock block;
 /** 创建自定义button */
 + (XYButton *)createButton;
+
+/** 设置背景图片 */
+- (void)setBackgroundImageWithImageName:(NSString *)imageName highImageName:(NSString *)highImageName;
 @end

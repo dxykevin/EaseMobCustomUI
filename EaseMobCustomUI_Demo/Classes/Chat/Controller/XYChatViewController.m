@@ -9,8 +9,8 @@
 #import "XYChatViewController.h"
 #import "XYToolView.h"
 #import "XYChatViewCell.h"
-
-@interface XYChatViewController () <UITableViewDelegate,UITableViewDataSource,EMChatManagerDelegate>
+#import "EMCDDeviceManager.h"
+@interface XYChatViewController () <UITableViewDelegate,UITableViewDataSource,EMChatManagerDelegate,XYToolViewDelegate>
 @property (nonatomic,strong) UITableView *tableView;
 @property (nonatomic,strong) XYToolView *toolView;
 /** 消息数组 */
@@ -31,14 +31,10 @@
     self.view.backgroundColor = [UIColor grayColor];
     
     XYToolView *toolView = [[XYToolView alloc] initWithFrame:CGRectMake(0, kScreenHeight - 44, kScreenWidth, 44)];
+    toolView.delegate = self;
     [self.view addSubview:toolView];
-//    toolView.moreBlock = ^() {
-//        NSLog(@"%s",__func__);
-//        EMTextMessageBody *body = [[EMTextMessageBody alloc] initWithText:@"积极急急急急急急急急急急急急急急急急急急急急急急急急急急急急急急就是的覅偶见否"];
-//        EMMessage *message = [[EMMessage alloc] initWithConversationID:@"hc11" from:@"havego" to:@"hc11" body:body ext:nil];
-//        [[EMClient sharedClient].chatManager asyncSendMessage:message progress:nil completion:nil];
-//    };
     self.toolView = toolView;
+    [self setupInputViewBlock];
     
     UITableView *myView = [[UITableView alloc] init];
     myView.contentInset = UIEdgeInsetsMake(64, 0, 0, 0);
@@ -60,6 +56,37 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShown:) name:UIKeyboardWillShowNotification object:nil];
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHiden:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+/** 初始化inputView的block */
+- (void)setupInputViewBlock {
+    
+    __weak typeof(self) weakSelf = self;
+    
+    self.toolView.sendTextBlock = ^(UITextView *textView,XYToolViewEditTextViewType type) {
+        
+        if (type == XYToolViewEditTextViewTypeSend) {
+            EMTextMessageBody *body = [[EMTextMessageBody alloc] initWithText:textView.text];
+            EMMessage *message = [[EMMessage alloc] initWithConversationID:weakSelf.conversationID from:[[EMClient sharedClient] currentUsername] to:weakSelf.conversationID body:body ext:nil];
+            [[EMClient sharedClient].chatManager asyncSendMessage:message progress:nil completion:^(EMMessage *message, EMError *error) {
+                if (!error) {
+                    NSLog(@"消息发送成功");
+                    textView.text = @"";
+                    [weakSelf.messageData addObject:message];
+                    [weakSelf.tableView reloadData];
+                    [weakSelf scrollBottom];
+                } else {
+                    NSLog(@"消息发送失败");
+                }
+                }];
+        }
+    };
+    //    toolView.moreBlock = ^() {
+    //        NSLog(@"%s",__func__);
+    //        EMTextMessageBody *body = [[EMTextMessageBody alloc] initWithText:@"积极急急急急急急急急急急急急急急急急急急急急急急急急急急急急急急就是的覅偶见否"];
+    //        EMMessage *message = [[EMMessage alloc] initWithConversationID:@"hc11" from:@"havego" to:@"hc11" body:body ext:nil];
+    //        [[EMClient sharedClient].chatManager asyncSendMessage:message progress:nil completion:nil];
+    //    };
 }
 
 /** 加载数据 */
@@ -114,6 +141,7 @@
     if (self.messageData.count == 0) {
         return;
     }
+    [self.tableView reloadData];
     NSIndexPath *indexPath = [NSIndexPath indexPathForRow:self.messageData.count - 1 inSection:0];
     [self.tableView scrollToRowAtIndexPath:indexPath atScrollPosition:(UITableViewScrollPositionBottom) animated:YES];
 }
@@ -149,7 +177,7 @@
     
     cell.message = self.messageData[indexPath.row];
     
-    return 150;
+    return cell.cellHeight;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -161,11 +189,74 @@
 
 - (void)didReceiveMessages:(NSArray *)aMessages {
     
+   
     for (EMMessage *message in aMessages) {
+        NSLog(@"%zd",message.timestamp);
         [self.messageData addObject:message];
     }
     [self.tableView reloadData];
     [self scrollBottom];
+}
+
+#pragma mark - XYToolViewDelegate
+- (void)toolViewWithType:(XYToolViewVoiceType)type button:(XYButton *)button {
+    
+    switch (type) {
+        case XYToolViewVoiceTypeStart: {
+            NSLog(@"开始录音");
+            int fileNum = arc4random() / 1000;
+            [[EMCDDeviceManager sharedInstance] asyncStartRecordingWithFileName:[NSString stringWithFormat:@"%zd",fileNum] completion:^(NSError *error) {
+                if (!error) {
+                    NSLog(@"录音成功");
+                }
+            }];
+        }
+            break;
+        case XYToolViewVoiceTypeStop: {
+            
+            NSLog(@"停止录音");
+            [[EMCDDeviceManager sharedInstance] asyncStopRecordingWithCompletion:^(NSString *recordPath, NSInteger aDuration, NSError *error) {
+                
+                if (!error) {
+                    NSLog(@"recordPath -- %@ aDuration --- %zd",recordPath,aDuration);
+                    /** 发送语音消息 */
+                    [self sendVoiceMessageWithFilePath:recordPath voiceDuration:aDuration];
+                }
+            }];
+        }
+            break;
+        case XYToolViewVoiceTypeCancel: {
+            
+            NSLog(@"取消录音");
+            [[EMCDDeviceManager sharedInstance] cancelCurrentRecording];
+        }
+            break;
+        default:
+            break;
+    }
+}
+
+- (void)sendVoiceMessageWithFilePath:(NSString *)filePath voiceDuration:(NSInteger)voiceDuration {
+    
+    EMVoiceMessageBody *body = [[EMVoiceMessageBody alloc] initWithLocalPath:filePath displayName:@"audio"];
+    body.duration = (int)voiceDuration;
+    
+    // 生成message
+    EMMessage *message = [[EMMessage alloc] initWithConversationID:self.conversationID from:[[EMClient sharedClient] currentUsername] to:self.conversationID body:body ext:nil];
+    message.chatType = EMChatTypeChat;
+    
+    [[EMClient sharedClient].chatManager asyncSendMessage:message progress:^(int progress) {
+        
+        NSLog(@"发送语音进度progress --- %zd",progress);
+    } completion:^(EMMessage *message, EMError *error) {
+        
+        if (!error) {
+            NSLog(@"发送语音消息成功");
+            
+            [self.messageData addObject:message];
+            [self scrollBottom];
+        }
+    }];
 }
 
 /** 懒加载 */
