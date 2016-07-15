@@ -1,0 +1,36 @@
+//
+//  PrefixHeader.pch
+//  EaseMobCustomUI_Demo
+//
+//  Created by HoldCourt on 16/7/8.
+//  Copyright © 2016年 HoldCourt. All rights reserved.
+//
+
+#ifndef PrefixHeader_pch
+#define PrefixHeader_pch
+
+#import "EMSDK.h"
+
+#import "XYButton.h"
+
+#import "UIViewExt.h"
+
+#ifdef DEBUG
+#define HCLog(...) NSLog(@"%s 第%d行 \n %@\n\n",__func__,__LINE__,[NSString stringWithFormat:__VA_ARGS__])
+#else
+#define HCLog(...)
+#endif
+
+#define kChatCellHeight 44
+
+#define kScreenHeight [UIScreen mainScreen].bounds.size.height
+
+#define kScreenWidth [UIScreen mainScreen].bounds.size.width
+
+
+#define kWeChatPadding 10
+#define kWeChatScreenHeight [UIScreen mainScreen].bounds.size.height
+#define kWeChatScreenWidth [UIScreen mainScreen].bounds.size.width
+#define kWeChatAllSubviewHeight 44
+
+#endif /* PrefixHeader_pch */

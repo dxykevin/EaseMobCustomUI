@@ -1,2 +1,2 @@
-# EaseMobCustomUI
-基于环信3.0,自定义UI
+# EaseMobPractice
+使用环信SDK,自定义UI,实现IM
