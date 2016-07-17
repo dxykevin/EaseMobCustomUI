@@ -19,12 +19,32 @@
 @end
 @implementation XYAnyView
 
-- (instancetype)initWithFrame:(CGRect)frame {
+- (instancetype)initWithImageBlock:(void(^)())imageBlock voiceBlock:(void(^)())voiceBlock videoBlock:(void(^)())videoBlock {
     
-    if (self = [super initWithFrame:frame]) {
+    if (self = [super init]) {
         
         /** 添加子控件 */
         [self setupSubViews];
+        
+        /** 事件处理 */
+        self.imgBt.block = ^(XYButton *bt) {
+            
+            if (imageBlock) {
+                imageBlock();
+            }
+        };
+        self.voiceBt.block = ^(XYButton *bt) {
+            
+            if (voiceBlock) {
+                voiceBlock();
+            }
+        };
+        self.videoBt.block = ^(XYButton *bt) {
+            
+            if (videoBlock) {
+                videoBlock();
+            }
+        };
     }
     return self;
 }

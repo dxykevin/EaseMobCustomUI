@@ -9,5 +9,5 @@
 #import <UIKit/UIKit.h>
 
 @interface XYAnyView : UIView
-
+- (instancetype)initWithImageBlock:(void(^)())imageBlock voiceBlock:(void(^)())voiceBlock videoBlock:(void(^)())videoBlock;
 @end

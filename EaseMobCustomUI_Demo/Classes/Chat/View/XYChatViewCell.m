@@ -9,6 +9,7 @@
 #import "XYChatViewCell.h"
 #import "NSDateUtilities.h"
 #import "EMCDDeviceManager.h"
+#import "UIButton+WebCache.h"
 @interface XYChatViewCell ()
 /** 头像 */
 @property (nonatomic,strong) XYButton *iconBt;
@@ -53,7 +54,7 @@
     self.msgBt = msgBt;
     [self.iconBt setBackgroundImage:[UIImage imageNamed:@"chatListCellHead"] forState:(UIControlStateNormal)];
     self.msgBt.titleLabel.textAlignment = NSTextAlignmentLeft;
-    self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(10, 20, 0, 20);
+    self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(20, 20, 20, 20);
     self.msgBt.titleLabel.numberOfLines = 0;
     self.msgBt.titleLabel.font = [UIFont systemFontOfSize:15.0f];
 }
@@ -62,22 +63,34 @@
 - (void)msgClick:(XYButton *)button {
     
     if ([self.message.body isKindOfClass:[EMVoiceMessageBody class]]) {
-        /** 播放语音 */
-        EMVoiceMessageBody *body = (EMVoiceMessageBody *)self.message.body;
-        /** 获取本地路径 */
-        NSString *path = body.localPath;
-        NSFileManager *fileManager = [NSFileManager defaultManager];
-        /** 判断path路径是否存在 */
-        if (![fileManager fileExistsAtPath:path]) {
-            /** 从服务器获取地址 */
-            path = body.remotePath;
+        
+        [self playVoice];
+    } else if ([self.message.body isKindOfClass:[EMImageMessageBody class]]) {
+        /** 显示大图片 */
+        if (self.delegate && [self.delegate respondsToSelector:@selector(chatCellWithMessage:)]) {
+            [self.delegate chatCellWithMessage:self.message];
         }
-        [[EMCDDeviceManager sharedInstance] asyncPlayingWithPath:path completion:^(NSError *error) {
-            if (!error) {
-                NSLog(@"播放成功");
-            }
-        }];
     }
+}
+
+/** 播放语音 */
+- (void)playVoice {
+    
+    /** 播放语音 */
+    EMVoiceMessageBody *body = (EMVoiceMessageBody *)self.message.body;
+    /** 获取本地路径 */
+    NSString *path = body.localPath;
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    /** 判断path路径是否存在 */
+    if (![fileManager fileExistsAtPath:path]) {
+        /** 从服务器获取地址 */
+        path = body.remotePath;
+    }
+    [[EMCDDeviceManager sharedInstance] asyncPlayingWithPath:path completion:^(NSError *error) {
+        if (!error) {
+            NSLog(@"播放成功");
+        }
+    }];
 }
 
 - (void)layoutSubviews {
@@ -100,30 +113,33 @@
         [self.msgBt setTitleColor:[UIColor blackColor] forState:(UIControlStateNormal)];
         NSLog(@"txtBody.text --- %@ %@",txtBody.text,message.messageId);
         CGSize size = [txtBody.text boundingRectWithSize:CGSizeMake(kScreenWidth / 2, MAXFLOAT) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15.0f]} context:nil].size;
-        self.size = size;
+        CGSize realSize = CGSizeMake(size.width + 40, size.height + 40);
+        // 聊天按钮的size
+        self.msgBt.size = realSize;
         
-        if ([message.from isEqualToString:[EMClient sharedClient].currentUsername]) {
-            /** 自己发送的消息 */
-            CGSize realSize = CGSizeMake(self.size.width + 40, self.size.height + 10);
-            self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(10, 20, 0, 20);
-            self.msgBt.size = realSize;
-        } else {
-            /** 好友发来的消息 */
-            CGSize realSize = CGSizeMake(self.size.width + 40, self.size.height + 25);
-            self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(10, 20, 15, 20);
-            self.msgBt.size = realSize;
-        }
     } else if ([message.body isKindOfClass:[EMVoiceMessageBody class]]) {
         /** 语音类型 */
         EMVoiceMessageBody *voiceBody = (EMVoiceMessageBody *)message.body;
         [self.msgBt setImage:[UIImage imageNamed:@"chat_receiver_audio_playing_full"] forState:(UIControlStateNormal)];
         [self.msgBt setTitle:[NSString stringWithFormat:@"%zd",voiceBody.duration] forState:(UIControlStateNormal)];
         NSLog(@"voiceBody.duration --- %zd %@",voiceBody.duration,message.messageId);
-        self.msgBt.size = CGSizeMake(kWeChatAllSubviewHeight + 40, kWeChatAllSubviewHeight + 5);
-        self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(0, 20, 5, 20);
+        self.msgBt.size = CGSizeMake(kWeChatAllSubviewHeight + 40, kWeChatAllSubviewHeight + 40);
         [self.msgBt setTitleColor:[UIColor blackColor] forState:(UIControlStateNormal)];
         self.msgBt.titleEdgeInsets = UIEdgeInsetsMake(0, 10, 0, 0);
         self.msgBt.imageEdgeInsets = UIEdgeInsetsMake(0, 0, 0, 10);
+    } else if ([message.body isKindOfClass:[EMImageMessageBody class]]) {
+        self.msgBt.size = CGSizeMake(kWeChatAllSubviewHeight * 2 + 40, kWeChatAllSubviewHeight * 2 + 40);
+        EMImageMessageBody *body = (EMImageMessageBody *)message.body;
+        NSString *path = body.thumbnailLocalPath;
+        NSLog(@"path  %@",path);
+        NSURL *imageUrl = nil;
+        if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+            imageUrl = [NSURL fileURLWithPath:path];
+        } else {
+            imageUrl = [NSURL URLWithString:body.thumbnailRemotePath];
+        }
+        HCLog(@"imageUrl--%@",imageUrl);
+        [self.msgBt sd_setImageWithURL:imageUrl forState:(UIControlStateNormal)];
     }
     
 //    NSLog(@"txtBody.text---%@",txtBody.text);

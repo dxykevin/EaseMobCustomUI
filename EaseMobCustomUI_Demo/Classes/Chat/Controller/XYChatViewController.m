@@ -11,13 +11,16 @@
 #import "XYChatViewCell.h"
 #import "EMCDDeviceManager.h"
 #import "XYAnyView.h"
-@interface XYChatViewController () <UITableViewDelegate,UITableViewDataSource,EMChatManagerDelegate,XYToolViewDelegate>
+#import "MWPhotoBrowser.h"
+@interface XYChatViewController () <UITableViewDelegate,UITableViewDataSource,EMChatManagerDelegate,XYToolViewDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate,XYChatViewCellShowImageDelegate,MWPhotoBrowserDelegate>
 @property (nonatomic,strong) UITableView *tableView;
 @property (nonatomic,strong) XYToolView *toolView;
 @property (nonatomic,strong) XYAnyView *anyView;
 @property (nonatomic,strong) UITextView *textView;
 /** 消息数组 */
 @property (nonatomic,strong) NSMutableArray *messageData;
+/** 保存图片的message */
+@property (nonatomic,strong) EMMessage *photoMessage;
 @end
 
 @implementation XYChatViewController
@@ -60,11 +63,34 @@
     
     
     /** 创建更多功能 */
-    XYAnyView *anyView = [[XYAnyView alloc] initWithFrame:CGRectMake(0, kScreenHeight, kScreenWidth, ((kScreenWidth - 4 * kWeChatPadding) / 3) + 2 * kWeChatPadding)];
+    XYAnyView *anyView = [[XYAnyView alloc] initWithImageBlock:^{
+        HCLog(@"点击了发送图片按钮");
+        UIImagePickerController *picker = [[UIImagePickerController alloc] init];
+        picker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+        picker.delegate = self;
+        
+        /** 解决弹出photolibrary还显示anyView的bug */
+        [self scrollViewWillBeginDragging:self.tableView];
+        
+        [self presentViewController:picker animated:YES completion:nil];
+    } voiceBlock:^{
+        HCLog(@"点击了发送语音按钮");
+    } videoBlock:^{
+        HCLog(@"点击了发送视频按钮");
+    }];
+    anyView.frame = CGRectMake(0, kScreenHeight, kScreenWidth, ((kScreenWidth - 4 * kWeChatPadding) / 3) + 2 * kWeChatPadding);
+    
     [[UIApplication sharedApplication].keyWindow addSubview:anyView];
     self.anyView = anyView;
     
      [self scrollBottom];
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    
+    [super viewWillDisappear:animated];
+    self.tableView.top = 0;
+    self.anyView.top = kScreenHeight;
 }
 
 /** 初始化inputView的block */
@@ -74,8 +100,9 @@
     
     self.toolView.sendTextBlock = ^(UITextView *textView,XYToolViewEditTextViewType type) {
         
+        /** [textView.text substringToIndex:textView.text.length - 1]目的是点击发送的时候是\n相当于添加了一行 */
         if (type == XYToolViewEditTextViewTypeSend) {
-            EMTextMessageBody *body = [[EMTextMessageBody alloc] initWithText:textView.text];
+            EMTextMessageBody *body = [[EMTextMessageBody alloc] initWithText:[textView.text substringToIndex:textView.text.length - 1]];
             EMMessage *message = [[EMMessage alloc] initWithConversationID:weakSelf.conversationID from:[[EMClient sharedClient] currentUsername] to:weakSelf.conversationID body:body ext:nil];
             [[EMClient sharedClient].chatManager asyncSendMessage:message progress:nil completion:^(EMMessage *message, EMError *error) {
                 if (!error) {
@@ -98,12 +125,12 @@
         
         if (weakSelf.textView) {
             [weakSelf.textView resignFirstResponder];
-            weakSelf.tableView.top = - ((kScreenWidth - 4 * kWeChatPadding) / 3) + 2 * kWeChatPadding - 64;
-            weakSelf.toolView.top = weakSelf.tableView.bottom;
-            [weakSelf scrollBottom];
         }
-        weakSelf.anyView.top = kScreenHeight - weakSelf.anyView.height;
-//        weakSelf.toolView.top = kScreenHeight - 400;
+        [UIView animateWithDuration:0.25f animations:^{
+            weakSelf.tableView.top = - (((kScreenWidth - 4 * kWeChatPadding) / 3) + 2 * kWeChatPadding);
+            weakSelf.toolView.top = weakSelf.tableView.bottom;
+            weakSelf.anyView.top = kScreenHeight - (((kScreenWidth - 4 * kWeChatPadding) / 3) + 2 * kWeChatPadding);
+        }];
     };
 }
 
@@ -193,6 +220,8 @@
     /** 取消选中cell显示灰色 */
     cell.selectedBackgroundView = [UIView new];
     
+    cell.delegate = self;
+    
     cell.message = self.messageData[indexPath.row];
     
     return cell;
@@ -207,13 +236,47 @@
     return cell.cellHeight;
 }
 
+#pragma mark - UIImagePickerControllerDelegate
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info {
+    
+    /** 隐藏picker */
+    [picker dismissViewControllerAnimated:YES completion:nil];
+    /** 取出图片 */
+    UIImage *image = info[UIImagePickerControllerOriginalImage];
+    /** 发送图片 */
+    [self sendImage:image];
+}
+
+- (void)sendImage:(UIImage *)image {
+    
+    /** image转换为二进制流 */
+    NSData *data = UIImagePNGRepresentation(image);
+    
+    EMImageMessageBody *body = [[EMImageMessageBody alloc] initWithData:data displayName:@"image.png"];
+    NSString *from = [[EMClient sharedClient] currentUsername];
+    
+    //生成Message
+    EMMessage *message = [[EMMessage alloc] initWithConversationID:self.conversationID from:from to:self.conversationID body:body ext:nil];
+    message.chatType = EMChatTypeChat;// 设置为单聊消息
+    
+    [[EMClient sharedClient].chatManager asyncSendMessage:message progress:^(int progress) {
+        HCLog(@"photo --- progress --- %zd",progress);
+    } completion:^(EMMessage *message, EMError *error) {
+        if (!error) {
+            HCLog(@"图片发送成功");
+            [self.messageData addObject:message];
+            [self scrollBottom];
+        }
+    }];
+}
+
 #pragma mark - EMChatManagerDelegate
 
 - (void)didReceiveMessages:(NSArray *)aMessages {
     
    
     for (EMMessage *message in aMessages) {
-        NSLog(@"%zd",message.timestamp);
+        
         [self.messageData addObject:message];
     }
     [self.tableView reloadData];
@@ -280,6 +343,37 @@
             [self scrollBottom];
         }
     }];
+}
+
+#pragma mark - XYChatViewCellShowImageDelegate
+- (void)chatCellWithMessage:(EMMessage *)message {
+    
+    self.photoMessage = message;
+    MWPhotoBrowser *broweser = [[MWPhotoBrowser alloc] initWithDelegate:self];
+    [self.navigationController pushViewController:broweser animated:YES];
+}
+
+
+#pragma mark - MWPhotoBrowserDelegate
+- (NSUInteger)numberOfPhotosInPhotoBrowser:(MWPhotoBrowser *)photoBrowser {
+    
+    return 1;
+}
+
+- (id <MWPhoto>)photoBrowser:(MWPhotoBrowser *)photoBrowser photoAtIndex:(NSUInteger)index {
+    
+    EMImageMessageBody *body = (EMImageMessageBody *)self.photoMessage.body;
+    NSString *path = body.localPath;
+    MWPhoto *photo = nil;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+        /** 本地图片 */
+        photo = [MWPhoto photoWithImage:[UIImage imageWithContentsOfFile:path]];
+    } else {
+        /** 网络图片 */
+        path = body.remotePath;
+        photo = [MWPhoto photoWithURL:[NSURL URLWithString:path]];
+    }
+    return photo;
 }
 
 /** 懒加载 */
