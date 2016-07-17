@@ -10,9 +10,12 @@
 #import "XYToolView.h"
 #import "XYChatViewCell.h"
 #import "EMCDDeviceManager.h"
+#import "XYAnyView.h"
 @interface XYChatViewController () <UITableViewDelegate,UITableViewDataSource,EMChatManagerDelegate,XYToolViewDelegate>
 @property (nonatomic,strong) UITableView *tableView;
 @property (nonatomic,strong) XYToolView *toolView;
+@property (nonatomic,strong) XYAnyView *anyView;
+@property (nonatomic,strong) UITextView *textView;
 /** 消息数组 */
 @property (nonatomic,strong) NSMutableArray *messageData;
 @end
@@ -30,12 +33,6 @@
     
     self.view.backgroundColor = [UIColor grayColor];
     
-    XYToolView *toolView = [[XYToolView alloc] initWithFrame:CGRectMake(0, kScreenHeight - 44, kScreenWidth, 44)];
-    toolView.delegate = self;
-    [self.view addSubview:toolView];
-    self.toolView = toolView;
-    [self setupInputViewBlock];
-    
     UITableView *myView = [[UITableView alloc] init];
     myView.contentInset = UIEdgeInsetsMake(64, 0, 0, 0);
     myView.frame = CGRectMake(0, 0, kScreenWidth, kScreenHeight - 44);
@@ -47,15 +44,27 @@
     
     [self.tableView registerClass:[XYChatViewCell class] forCellReuseIdentifier:@"chatCell"];
     
+    XYToolView *toolView = [[XYToolView alloc] initWithFrame:CGRectMake(0, myView.bottom, kScreenWidth, 44)];
+    toolView.delegate = self;
+    [self.view addSubview:toolView];
+    self.toolView = toolView;
+    [self setupInputViewBlock];
+    
     /** 加载数据 */
     [self loadData];
-    
-    [self scrollBottom];
     
     /** 监听键盘 */
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShown:) name:UIKeyboardWillShowNotification object:nil];
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHiden:) name:UIKeyboardWillHideNotification object:nil];
+    
+    
+    /** 创建更多功能 */
+    XYAnyView *anyView = [[XYAnyView alloc] initWithFrame:CGRectMake(0, kScreenHeight, kScreenWidth, ((kScreenWidth - 4 * kWeChatPadding) / 3) + 2 * kWeChatPadding)];
+    [[UIApplication sharedApplication].keyWindow addSubview:anyView];
+    self.anyView = anyView;
+    
+     [self scrollBottom];
 }
 
 /** 初始化inputView的block */
@@ -79,14 +88,23 @@
                     NSLog(@"消息发送失败");
                 }
                 }];
+        } else {
+            
+            weakSelf.textView = textView;
         }
     };
-    //    toolView.moreBlock = ^() {
-    //        NSLog(@"%s",__func__);
-    //        EMTextMessageBody *body = [[EMTextMessageBody alloc] initWithText:@"积极急急急急急急急急急急急急急急急急急急急急急急急急急急急急急急就是的覅偶见否"];
-    //        EMMessage *message = [[EMMessage alloc] initWithConversationID:@"hc11" from:@"havego" to:@"hc11" body:body ext:nil];
-    //        [[EMClient sharedClient].chatManager asyncSendMessage:message progress:nil completion:nil];
-    //    };
+    
+    self.toolView.moreBlock = ^() {
+        
+        if (weakSelf.textView) {
+            [weakSelf.textView resignFirstResponder];
+            weakSelf.tableView.top = - ((kScreenWidth - 4 * kWeChatPadding) / 3) + 2 * kWeChatPadding - 64;
+            weakSelf.toolView.top = weakSelf.tableView.bottom;
+            [weakSelf scrollBottom];
+        }
+        weakSelf.anyView.top = kScreenHeight - weakSelf.anyView.height;
+//        weakSelf.toolView.top = kScreenHeight - 400;
+    };
 }
 
 /** 加载数据 */
@@ -123,10 +141,16 @@
     }];
 }
 
-- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
     
-    /** 拖拽回收键盘 */
     [self.view endEditing:YES];
+    [UIView animateWithDuration:0.25 animations:^{
+        self.anyView.top = kScreenHeight;
+        if (self.tableView.top < 0) {
+            self.tableView.top = 0;
+            self.toolView.top = self.tableView.bottom;
+        }
+    }];
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
@@ -166,6 +190,9 @@
     
     XYChatViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"chatCell"];
     
+    /** 取消选中cell显示灰色 */
+    cell.selectedBackgroundView = [UIView new];
+    
     cell.message = self.messageData[indexPath.row];
     
     return cell;
@@ -178,11 +205,6 @@
     cell.message = self.messageData[indexPath.row];
     
     return cell.cellHeight;
-}
-
-- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 
 #pragma mark - EMChatManagerDelegate
@@ -205,7 +227,8 @@
         case XYToolViewVoiceTypeStart: {
             NSLog(@"开始录音");
             int fileNum = arc4random() / 1000;
-            [[EMCDDeviceManager sharedInstance] asyncStartRecordingWithFileName:[NSString stringWithFormat:@"%zd",fileNum] completion:^(NSError *error) {
+            NSTimeInterval time = [NSDate timeIntervalSinceReferenceDate];
+            [[EMCDDeviceManager sharedInstance] asyncStartRecordingWithFileName:[NSString stringWithFormat:@"%zd%zd",fileNum,time] completion:^(NSError *error) {
                 if (!error) {
                     NSLog(@"录音成功");
                 }

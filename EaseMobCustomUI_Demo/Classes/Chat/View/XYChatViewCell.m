@@ -8,6 +8,7 @@
 
 #import "XYChatViewCell.h"
 #import "NSDateUtilities.h"
+#import "EMCDDeviceManager.h"
 @interface XYChatViewCell ()
 /** 头像 */
 @property (nonatomic,strong) XYButton *iconBt;
@@ -44,6 +45,7 @@
     
     /** 消息 */
     XYButton *msgBt = [XYButton createButton];
+    [msgBt addTarget:self action:@selector(msgClick:) forControlEvents:(UIControlEventTouchUpInside)];
     [self.contentView addSubview:msgBt];
     
     self.timeLb = timeLb;
@@ -54,6 +56,28 @@
     self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(10, 20, 0, 20);
     self.msgBt.titleLabel.numberOfLines = 0;
     self.msgBt.titleLabel.font = [UIFont systemFontOfSize:15.0f];
+}
+
+/** 消息点击事件 */
+- (void)msgClick:(XYButton *)button {
+    
+    if ([self.message.body isKindOfClass:[EMVoiceMessageBody class]]) {
+        /** 播放语音 */
+        EMVoiceMessageBody *body = (EMVoiceMessageBody *)self.message.body;
+        /** 获取本地路径 */
+        NSString *path = body.localPath;
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        /** 判断path路径是否存在 */
+        if (![fileManager fileExistsAtPath:path]) {
+            /** 从服务器获取地址 */
+            path = body.remotePath;
+        }
+        [[EMCDDeviceManager sharedInstance] asyncPlayingWithPath:path completion:^(NSError *error) {
+            if (!error) {
+                NSLog(@"播放成功");
+            }
+        }];
+    }
 }
 
 - (void)layoutSubviews {
@@ -72,8 +96,9 @@
         /** 文本类型 */
         EMTextMessageBody *txtBody = (EMTextMessageBody *)message.body;
         [self.msgBt setTitle:txtBody.text forState:(UIControlStateNormal)];
+        [self.msgBt setImage:[UIImage new] forState:(UIControlStateNormal)];
         [self.msgBt setTitleColor:[UIColor blackColor] forState:(UIControlStateNormal)];
-        
+        NSLog(@"txtBody.text --- %@ %@",txtBody.text,message.messageId);
         CGSize size = [txtBody.text boundingRectWithSize:CGSizeMake(kScreenWidth / 2, MAXFLOAT) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15.0f]} context:nil].size;
         self.size = size;
         
@@ -93,6 +118,7 @@
         EMVoiceMessageBody *voiceBody = (EMVoiceMessageBody *)message.body;
         [self.msgBt setImage:[UIImage imageNamed:@"chat_receiver_audio_playing_full"] forState:(UIControlStateNormal)];
         [self.msgBt setTitle:[NSString stringWithFormat:@"%zd",voiceBody.duration] forState:(UIControlStateNormal)];
+        NSLog(@"voiceBody.duration --- %zd %@",voiceBody.duration,message.messageId);
         self.msgBt.size = CGSizeMake(kWeChatAllSubviewHeight + 40, kWeChatAllSubviewHeight + 5);
         self.msgBt.contentEdgeInsets = UIEdgeInsetsMake(0, 20, 5, 20);
         [self.msgBt setTitleColor:[UIColor blackColor] forState:(UIControlStateNormal)];

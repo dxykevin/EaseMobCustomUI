@@ -114,6 +114,7 @@
 		C9C636551D2A8C4B00BCAC7A /* EaseMobCustomUI_DemoUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = C9C636541D2A8C4B00BCAC7A /* EaseMobCustomUI_DemoUITests.m */; };
 		C9C636E81D2B78AE00BCAC7A /* Login.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C9C636E71D2B78AE00BCAC7A /* Login.storyboard */; };
 		C9C636ED1D2B7AB200BCAC7A /* XYLoginViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = C9C636EC1D2B7AB200BCAC7A /* XYLoginViewController.m */; };
+		C9EFEC7F1D3B57BF00E753E6 /* XYAnyView.m in Sources */ = {isa = PBXBuildFile; fileRef = C9EFEC7E1D3B57BF00E753E6 /* XYAnyView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -387,6 +388,8 @@
 		C9C636EB1D2B7AB200BCAC7A /* XYLoginViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XYLoginViewController.h; sourceTree = "<group>"; };
 		C9C636EC1D2B7AB200BCAC7A /* XYLoginViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XYLoginViewController.m; sourceTree = "<group>"; };
 		C9E8758C1D2F323400EC029F /* PrefixHeader.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrefixHeader.pch; sourceTree = "<group>"; };
+		C9EFEC7D1D3B57BF00E753E6 /* XYAnyView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XYAnyView.h; sourceTree = "<group>"; };
+		C9EFEC7E1D3B57BF00E753E6 /* XYAnyView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XYAnyView.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -472,6 +475,8 @@
 				C93D8D701D2CFB8F001305B9 /* XYChatViewCell.m */,
 				C9AB32091D2D32B3006E1ED4 /* XYToolView.h */,
 				C9AB320A1D2D32B3006E1ED4 /* XYToolView.m */,
+				C9EFEC7D1D3B57BF00E753E6 /* XYAnyView.h */,
+				C9EFEC7E1D3B57BF00E753E6 /* XYAnyView.m */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -1226,6 +1231,7 @@
 				C949BCB71D38C63B002B8BEF /* PSTGridLayoutRow.m in Sources */,
 				C949BC9E1D38C63B002B8BEF /* EMSDWebImageDecoder.m in Sources */,
 				C949BCBE1D38C63B002B8BEF /* SDWebImageDecoder.m in Sources */,
+				C9EFEC7F1D3B57BF00E753E6 /* XYAnyView.m in Sources */,
 				C949BCB01D38C63B002B8BEF /* PSTCollectionViewData.m in Sources */,
 				C949BCE51D38C66A002B8BEF /* UIImage+XMGResizing.m in Sources */,
 				C949BDAD1D38CDF2002B8BEF /* EMCDDeviceManagerBase.m in Sources */,
