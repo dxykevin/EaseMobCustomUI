@@ -11,6 +11,8 @@
 
 #import "EMSDK.h"
 
+#import "EMSDKFull.h"
+
 #import "XYButton.h"
 
 #import "UIViewExt.h"

@@ -130,13 +130,13 @@
     } else if ([message.body isKindOfClass:[EMImageMessageBody class]]) {
         self.msgBt.size = CGSizeMake(kWeChatAllSubviewHeight * 2 + 40, kWeChatAllSubviewHeight * 2 + 40);
         EMImageMessageBody *body = (EMImageMessageBody *)message.body;
-        NSString *path = body.thumbnailLocalPath;
+        NSString *path = body.localPath;
         NSLog(@"path  %@",path);
         NSURL *imageUrl = nil;
         if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
             imageUrl = [NSURL fileURLWithPath:path];
         } else {
-            imageUrl = [NSURL URLWithString:body.thumbnailRemotePath];
+            imageUrl = [NSURL URLWithString:body.remotePath];
         }
         HCLog(@"imageUrl--%@",imageUrl);
         [self.msgBt sd_setImageWithURL:imageUrl forState:(UIControlStateNormal)];

@@ -12,7 +12,9 @@
 #import "EMCDDeviceManager.h"
 #import "XYAnyView.h"
 #import "MWPhotoBrowser.h"
-@interface XYChatViewController () <UITableViewDelegate,UITableViewDataSource,EMChatManagerDelegate,XYToolViewDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate,XYChatViewCellShowImageDelegate,MWPhotoBrowserDelegate>
+#import "EMSDKFull.h"
+#import "XYCallViewController.h"
+@interface XYChatViewController () <UITableViewDelegate,UITableViewDataSource,EMChatManagerDelegate,XYToolViewDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate,XYChatViewCellShowImageDelegate,MWPhotoBrowserDelegate,EMCallManagerDelegate>
 @property (nonatomic,strong) UITableView *tableView;
 @property (nonatomic,strong) XYToolView *toolView;
 @property (nonatomic,strong) XYAnyView *anyView;
@@ -21,6 +23,8 @@
 @property (nonatomic,strong) NSMutableArray *messageData;
 /** 保存图片的message */
 @property (nonatomic,strong) EMMessage *photoMessage;
+/** 实时通话的session */
+@property (nonatomic,strong) EMCallSession *callSession;
 @end
 
 @implementation XYChatViewController
@@ -33,6 +37,7 @@
     
     /** 注册消息代理 */
     [[EMClient sharedClient].chatManager addDelegate:self delegateQueue:nil];
+    [[EMClient sharedClient].callManager addDelegate:self delegateQueue:nil];
     
     self.view.backgroundColor = [UIColor grayColor];
     
@@ -75,6 +80,14 @@
         [self presentViewController:picker animated:YES completion:nil];
     } voiceBlock:^{
         HCLog(@"点击了发送语音按钮");
+        /** 实时通话类 */
+        EMCallSession *callSession = [[EMClient sharedClient].callManager makeVoiceCall:self.conversationID error:nil];
+        self.callSession = callSession;
+        
+        /** 跳转到通话页面 */
+        XYCallViewController *callVC = [[XYCallViewController alloc] init];
+        callVC.currentSession = callSession;
+        [self presentViewController:callVC animated:YES completion:nil];
     } videoBlock:^{
         HCLog(@"点击了发送视频按钮");
     }];
@@ -84,6 +97,13 @@
     self.anyView = anyView;
     
      [self scrollBottom];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    
+    [super viewWillAppear:animated];
+    self.tableView.top = 0;
+    self.toolView.top = self.tableView.bottom;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -200,6 +220,7 @@
 - (void)dealloc {
     
     [[EMClient sharedClient].chatManager removeDelegate:self];
+    [[EMClient sharedClient].callManager removeDelegate:self];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
@@ -282,6 +303,9 @@
     [self.tableView reloadData];
     [self scrollBottom];
 }
+
+#pragma mark - 实时通话代理方法
+
 
 #pragma mark - XYToolViewDelegate
 - (void)toolViewWithType:(XYToolViewVoiceType)type button:(XYButton *)button {

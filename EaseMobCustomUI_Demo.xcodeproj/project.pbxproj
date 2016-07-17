@@ -115,6 +115,7 @@
 		C9C636E81D2B78AE00BCAC7A /* Login.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C9C636E71D2B78AE00BCAC7A /* Login.storyboard */; };
 		C9C636ED1D2B7AB200BCAC7A /* XYLoginViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = C9C636EC1D2B7AB200BCAC7A /* XYLoginViewController.m */; };
 		C9EFEC7F1D3B57BF00E753E6 /* XYAnyView.m in Sources */ = {isa = PBXBuildFile; fileRef = C9EFEC7E1D3B57BF00E753E6 /* XYAnyView.m */; };
+		C9EFEC821D3BDB8400E753E6 /* XYCallViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = C9EFEC811D3BDB8400E753E6 /* XYCallViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -390,6 +391,8 @@
 		C9E8758C1D2F323400EC029F /* PrefixHeader.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrefixHeader.pch; sourceTree = "<group>"; };
 		C9EFEC7D1D3B57BF00E753E6 /* XYAnyView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XYAnyView.h; sourceTree = "<group>"; };
 		C9EFEC7E1D3B57BF00E753E6 /* XYAnyView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XYAnyView.m; sourceTree = "<group>"; };
+		C9EFEC801D3BDB8400E753E6 /* XYCallViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XYCallViewController.h; sourceTree = "<group>"; };
+		C9EFEC811D3BDB8400E753E6 /* XYCallViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XYCallViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -464,6 +467,8 @@
 			children = (
 				C9AB32061D2D32A0006E1ED4 /* XYChatViewController.h */,
 				C9AB32071D2D32A0006E1ED4 /* XYChatViewController.m */,
+				C9EFEC801D3BDB8400E753E6 /* XYCallViewController.h */,
+				C9EFEC811D3BDB8400E753E6 /* XYCallViewController.m */,
 			);
 			path = Controller;
 			sourceTree = "<group>";
@@ -1196,6 +1201,7 @@
 				C949BC9C1D38C63B002B8BEF /* EMSDImageCache.m in Sources */,
 				C949BC941D38C63B002B8BEF /* MWGridCell.m in Sources */,
 				C949BCAE1D38C63B002B8BEF /* PSTCollectionViewCell.m in Sources */,
+				C9EFEC821D3BDB8400E753E6 /* XYCallViewController.m in Sources */,
 				C949BC951D38C63B002B8BEF /* MWGridViewController.m in Sources */,
 				C949BCBB1D38C63B002B8BEF /* NSData+ImageContentType.m in Sources */,
 				C949BCC81D38C63B002B8BEF /* UIImageView+WebCache.m in Sources */,
