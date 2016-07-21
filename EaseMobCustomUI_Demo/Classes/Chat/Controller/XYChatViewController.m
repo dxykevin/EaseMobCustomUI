@@ -212,6 +212,7 @@
     if (self.messageData.count == 0) {
         return;
     }
+
     [self.tableView reloadData];
     NSIndexPath *indexPath = [NSIndexPath indexPathForRow:self.messageData.count - 1 inSection:0];
     [self.tableView scrollToRowAtIndexPath:indexPath atScrollPosition:(UITableViewScrollPositionBottom) animated:YES];
@@ -250,11 +251,12 @@
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     
-    XYChatViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"chatCell"];
+//    XYChatViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"chatCell"];
     
-    cell.message = self.messageData[indexPath.row];
+    EMMessage *message = self.messageData[indexPath.row];
     
-    return cell.cellHeight;
+    
+    return [XYChatViewCell cellHeightForRowWithMessage:message];
 }
 
 #pragma mark - UIImagePickerControllerDelegate

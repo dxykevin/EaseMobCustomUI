@@ -21,4 +21,7 @@
 /** cell高度 */
 @property (nonatomic,assign) CGFloat cellHeight;
 @property (nonatomic,weak) id<XYChatViewCellShowImageDelegate> delegate;
+
+/** 根据消息返回cell的高度 */
++ (CGFloat)cellHeightForRowWithMessage:(EMMessage *)message;
 @end
